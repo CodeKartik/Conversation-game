@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "702542196787",
+    "project_id": "conversation-game-67ffa",
+    "storage_bucket": "conversation-game-67ffa.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702542196787:android:abbbbd0f0cf6a0d3eab346",
+        "android_client_info": {
+          "package_name": "com.example.conversation_game"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "702542196787-7mlmdbfbrlgeml87qgk1co6lf3nbiepi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC1izqhkCfluEUBQk9bXzUK1VCpdR9qrs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "702542196787-7mlmdbfbrlgeml87qgk1co6lf3nbiepi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
