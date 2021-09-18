@@ -1,12 +1,13 @@
-import 'package:conversation_game/Firebase/new_page.dart';
+import 'package:conversation_game/Game/game_page.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class ConvType extends StatefulWidget {
+class ConversationType extends StatefulWidget {
   @override
-  _ConvTypeState createState() => _ConvTypeState();
+  _ConversationTypeState createState() => _ConversationTypeState();
 }
 
-class _ConvTypeState extends State<ConvType> {
+class _ConversationTypeState extends State<ConversationType> {
   // static final FirebaseFirestore firestore = FirebaseFirestore.instance;
   // List? conList;
   // static String collectionPath = "Intermediate level conversations";
@@ -35,17 +36,27 @@ class _ConvTypeState extends State<ConvType> {
   // }
 
   @override
+  void initState() {
+    checkPermissions();
+    super.initState();
+  }
+
+  checkPermissions() async {
+    await Permission.speech.request();
+  }
+
+  @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
         backgroundColor: Color(0xffFE834A),
-        appBar: AppBar(
-          title: Text(
-            "Conversation Game",
-            style: TextStyle(color: Colors.white),
-          ),
-          centerTitle: true,
-        ),
+        // appBar: AppBar(
+        //   title: Text(
+        //     "Conversation Game",
+        //     style: TextStyle(color: Colors.white),
+        //   ),
+        //   centerTitle: true,
+        // ),
         body: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -81,14 +92,32 @@ class _ConvTypeState extends State<ConvType> {
                       context,
                       MaterialPageRoute(
                           builder: (c) => NewPage(
-                                subCollectionPath: "Shopping",
-                                subCollectionID: "rggHTu8Fk6lJByrzD3jt",
+                                subCollectionPath: "Good Manners",
+                                subCollectionID: "9YFHAkNcZFn7rnLdRLAr",
                               )));
                 },
                 minWidth: size.width,
                 height: 50,
-                child: Text('Shopping'),
+                child: Text('Good Manners'),
               ),
+              // SizedBox(height: 20),
+              // MaterialButton(
+              //   shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(20)),
+              //   color: Colors.white,
+              //   onPressed: () async {
+              //     Navigator.push(
+              //         context,
+              //         MaterialPageRoute(
+              //             builder: (c) => NewPage(
+              //                   subCollectionPath: "At home",
+              //                   subCollectionID: "7efMV07DERPQcmZtNxAt",
+              //                 )));
+              //   },
+              //   minWidth: size.width,
+              //   height: 50,
+              //   child: Text('At home'),
+              // ),
               SizedBox(height: 20),
               MaterialButton(
                 shape: RoundedRectangleBorder(
@@ -99,13 +128,13 @@ class _ConvTypeState extends State<ConvType> {
                       context,
                       MaterialPageRoute(
                           builder: (c) => NewPage(
-                                subCollectionPath: "About study",
-                                subCollectionID: "RmT0K2LFGOxKjf4tE4K3",
+                                subCollectionPath: "Greetings",
+                                subCollectionID: "QUsoRScQPnALS0BtcdsK",
                               )));
                 },
                 minWidth: size.width,
                 height: 50,
-                child: Text('About study'),
+                child: Text('Greetings'),
               ),
             ],
           ),

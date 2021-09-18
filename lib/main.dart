@@ -1,7 +1,9 @@
-import 'package:conversation_game/Firebase/ConvType.dart';
+import 'package:conversation_game/Game/ConvType.dart';
+import 'package:conversation_game/provider%20model/model.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,7 +13,8 @@ Future main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(MyApp());
+  runApp(ChangeNotifierProvider(
+      create: (context) => IncrementCounter(), child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -20,6 +23,6 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: "Conversation Game",
         theme: ThemeData(primaryColor: Color(0xffFE834A)),
-        home: ConvType(),
+        home: ConversationType(),
       );
 }
