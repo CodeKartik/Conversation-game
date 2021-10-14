@@ -29,12 +29,14 @@ class MessageBubble extends StatelessWidget {
             mainAxisAlignment: index % 2 == 0
                 ? MainAxisAlignment.end
                 : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 child: index % 2 != 0
                     ? CircleAvatar(
-                        radius: 30,
-                        backgroundImage: AssetImage("assets/boy.png"))
+                        backgroundColor: Colors.white,
+                        radius: 24,
+                        backgroundImage: AssetImage("assets/girl.png"))
                     : Container(),
               ),
               SizedBox(width: 3),
@@ -42,18 +44,17 @@ class MessageBubble extends StatelessWidget {
                 child: Material(
                   borderRadius: index % 2 == 0
                       ? BorderRadius.only(
-                          topLeft: Radius.circular(30.0),
-                          bottomLeft: Radius.circular(30.0),
-                          bottomRight: Radius.circular(30.0),
+                          topLeft: Radius.circular(20.0),
+                          bottomLeft: Radius.circular(20.0),
+                          bottomRight: Radius.circular(20.0),
                         )
                       : BorderRadius.only(
-                          topRight: Radius.circular(30.0),
-                          bottomLeft: Radius.circular(30.0),
-                          bottomRight: Radius.circular(30.0),
+                          topRight: Radius.circular(20.0),
+                          bottomLeft: Radius.circular(20.0),
+                          bottomRight: Radius.circular(20.0),
                         ),
-                  elevation: 3.0,
-                  color: index % 2 == 0 ? Colors.lightBlueAccent : Colors.white,
-                  // color: Colors.lightBlueAccent,
+                  elevation: 2.1,
+                  color: index % 2 == 0 ? Colors.blueGrey : Colors.white,
                   child: Padding(
                     padding:
                         EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
@@ -85,8 +86,9 @@ class MessageBubble extends StatelessWidget {
               Container(
                 child: index % 2 == 0
                     ? CircleAvatar(
-                        radius: 30,
-                        backgroundImage: AssetImage("assets/girl.png"))
+                        backgroundColor: Colors.blueGrey.shade300,
+                        radius: 24,
+                        backgroundImage: AssetImage("assets/boy.png"))
                     : Container(),
               ),
             ],

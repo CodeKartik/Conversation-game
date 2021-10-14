@@ -1,18 +1,27 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:conversation_game/Game/ConvType.dart';
 import 'package:conversation_game/provider%20model/model.dart';
+import 'package:flutter/animation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:conversation_game/speech_api.dart';
+import 'package:flutter/painting.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:lottie/lottie.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'MessageBubble.dart';
+import 'package:string_similarity/string_similarity.dart';
 
-class NewPage extends StatefulWidget {
-  const NewPage({
+class GamePage extends StatefulWidget {
+  const GamePage({
     Key? key,
     required this.subCollectionPath,
     required this.subCollectionID,
@@ -21,10 +30,10 @@ class NewPage extends StatefulWidget {
   final String subCollectionPath, subCollectionID;
 
   @override
-  _NewPageState createState() => _NewPageState();
+  _GamePageState createState() => _GamePageState();
 }
 
-class _NewPageState extends State<NewPage> {
+class _GamePageState extends State<GamePage> {
   List? english;
   List? hindi;
   List? conversationList;
@@ -36,9 +45,8 @@ class _NewPageState extends State<NewPage> {
   String text = 'Press mic and speak';
   bool isListening = false;
   ScrollController _scrollController = ScrollController();
-  // int messageIncrementCounter = 0;
   FlutterTts flutterTts = FlutterTts();
-  // String speaktext = "";
+  double accurecyPercentage = 0;
 
   @override
   void initState() {
@@ -53,15 +61,14 @@ class _NewPageState extends State<NewPage> {
     checkPermissions();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   checkPermissions() async {
     await Permission.speech.request();
   }
-
-  // speak() async {
-  //   if (this.mounted) {
-  //     await flutterTts.speak(speaktext);
-  //   }
-  // }
 
   Future toggleRecording() => SpeechApi.toggleRecording(
         onResult: (text) => setState(() => this.text = text
@@ -119,8 +126,6 @@ class _NewPageState extends State<NewPage> {
     Provider.of<IncrementCounter>(context, listen: false).resetCounters();
   }
 
-  // Future<bool> _onBackPressed() {}
-
   @override
   Widget build(BuildContext context) {
     var messageCounter =
@@ -128,10 +133,11 @@ class _NewPageState extends State<NewPage> {
     var scoreCounter = Provider.of<IncrementCounter>(context).getScoreCounter;
     return WillPopScope(
       onWillPop: () async {
-        if (scoreCounter == 0) {
+        if (scoreCounter == 0 && messageCounter == 0) {
           return true;
         }
         final dialog = await showDialog(
+          barrierDismissible: false,
           context: context,
           builder: (BuildContext context) => new CupertinoAlertDialog(
             title: new Text("Are you sure?"),
@@ -158,226 +164,812 @@ class _NewPageState extends State<NewPage> {
         );
         return dialog;
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Conversation'),
-          leading: IconButton(
-              onPressed: () {
-                resetCounters(context);
-                Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (c) => ConversationType()));
-              },
-              icon: Icon(Icons.arrow_back)),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(top: 15, right: 15),
-              child: english != null
-                  ? Text(
-                      "$scoreCounter / ${(english!.length ~/ 2).toInt()}",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    )
-                  : Container(),
-            )
-          ],
-        ),
-        body: SafeArea(
-          child: Center(
-            child: conversationList == null
-                ? CircularProgressIndicator()
-                : Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          shrinkWrap: true,
-                          padding: EdgeInsets.only(top: 10, bottom: 10),
-                          physics: BouncingScrollPhysics(),
-                          itemCount: finalEnglishConversationList.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == finalEnglishConversationList.length) {
-                              return Container(
-                                height: 200,
-                              );
-                            }
-                            return MessageBubble(
-                                englishMessage: finalEnglishConversationList,
-                                hindiMessage: finalHindiConversationList,
-                                index: index);
+      // LinearGradient(
+      //       begin: Alignment.topLeft,
+      //       end: Alignment.bottomRight,
+      //       // stops: [0.1, 0.5, 0.7, 0.9],
+      //       colors: [Color(0xff5FFBF1), Color(0xff86A8E7), Color(0xffD16BA5)],
+      //     ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [
+              0.1,
+              // 0.4,
+              0.7,
+            ],
+            colors: [
+              // Color(0xffB2EEEA),
 
-                            // return Padding(
-                            //   padding: const EdgeInsets.all(8.0),
-                            //   child: Text(english![index] + hindi![index]),
-                            // );
-                          },
+              Colors.white,
+              Colors.blue.shade100,
+              // Color(0xffB5C6E7),
+              // Color(0xffCF97B7),
+            ],
+          ),
+        ),
+        child: Scaffold(
+          // backgroundColor: Colors.grey.shade300,
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            // backgroundColor: Colors.blue.shade600,
+            backgroundColor: Colors.white,
+            elevation: 1,
+            title: Text(
+              'Conversation',
+              style: TextStyle(fontSize: 20, color: Color(0xff5250E4)),
+            ),
+            leading: IconButton(
+                onPressed: () {
+                  resetCounters(context);
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (c) => ConversationType()));
+                },
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Color(0xff5250E4),
+                )),
+            // padding: const EdgeInsets.only(top: 15, right: 15),
+
+            actions: [
+              english != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: Color(0xffFF725E),
+                            borderRadius: BorderRadius.circular(13)),
+                        // height: 5,
+                        width: 100,
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Score : ',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                "$scoreCounter / ${(english!.length ~/ 2).toInt()}",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      ClipRRect(
-                        borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(15),
-                            topRight: Radius.circular(15)),
-                        child: Container(
-                          height: 200,
+                    )
+                  : Container()
+            ],
+          ),
+          body: SafeArea(
+            child: Center(
+              child: conversationList == null
+                  ? Lottie.asset('assets/loading.json')
+
+                  // CircularProgressIndicator(
+                  //     strokeWidth: 6,
+                  //     color: Colors.greenAccent,
+                  //     backgroundColor: Colors.blueAccent,
+                  //   )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            // shrinkWrap: true,
+                            padding: EdgeInsets.only(top: 10, bottom: 10),
+                            physics: BouncingScrollPhysics(),
+                            itemCount: finalEnglishConversationList.length + 1,
+                            itemBuilder: (context, index) {
+                              if (index ==
+                                  finalEnglishConversationList.length) {
+                                return Container(
+                                  height: 220,
+                                );
+                              }
+                              // if the range error still occurs then disable the delayed display
+                              //  slidingCurve: Curves.easeIn,
+                              // delay: Duration(microseconds: 300),
+                              return MessageBubble(
+                                  englishMessage: finalEnglishConversationList,
+                                  hindiMessage: finalHindiConversationList,
+                                  index: index);
+                            },
+                          ),
+                        ),
+                        Container(
+                          height: MediaQuery.of(context).size.height * 0.35,
                           width: Size.infinite.width,
-                          color: Colors.deepOrange,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(20),
+                                topRight: Radius.circular(20)),
+                            color: Colors.white,
+                            boxShadow: [
+                              // color: Colors.white, //background color of box
+                              BoxShadow(
+                                  color: Colors.grey.shade300,
+                                  blurRadius: 1, // soften the shadow
+                                  spreadRadius: 0.0, //extend the shadow
+                                  offset: Offset.zero)
+                            ],
+                          ),
+                          // color: Colors.deepOrange,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Flexible(
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 8),
                                   child: english == null
                                       ? CircularProgressIndicator()
                                       : Text(
                                           " \" ${english![messageCounter]}  \"  बोलिये",
                                           style: TextStyle(
-                                              color: Colors.white,
+                                              color: Colors.black,
                                               fontSize: 20,
                                               fontWeight: FontWeight.bold),
                                         ),
                                 ),
                               ),
                               AvatarGlow(
-                                animate: true,
-                                glowColor: Colors.white,
+                                animate: isListening,
+                                glowColor: Colors.blue,
                                 endRadius: 50.0,
-                                repeat: isListening,
+                                // repeat: isListening,
                                 child: GestureDetector(
                                   onLongPress: () {
                                     toggleRecording();
-
-                                    // if (this.mounted) {
-                                    //   setState(() {
-                                    //     isListening = true;
-                                    //   });
-                                    // }
-                                    // print("onlong press and $isListening");
+                                    setState(() {
+                                      isListening = true;
+                                    });
                                   },
                                   onLongPressUp: () {
-                                    print(messageCounter);
-                                    print(english!.length);
-                                    // print(
-                                    //     "This is it :${(english!.length / 2) + 1}");
-                                    // print(
-                                    //     "This is it :${(english!.length ~/ 2) + 1}");
+                                    setState(() {
+                                      isListening = false;
+                                    });
+                                    String message = english![messageCounter]
+                                        .replaceAll(new RegExp(r'[^\w\s]+'), '')
+                                        .toString()
+                                        .toLowerCase();
+                                    accurecyPercentage = text
+                                        .toLowerCase()
+                                        .toString()
+                                        .similarityTo(message);
+
+                                    var percent =
+                                        (accurecyPercentage * 100).toInt();
+                                    print(
+                                        "This is a percentage acc : $percent");
+
+                                    // if the message is last from the conversation then the if condition execute otherwise else condition will execute
+
                                     if (messageCounter ==
                                         (english!.length - 2)) {
-                                      print(
-                                          "This is message counter : $messageCounter");
-                                      String message = english![messageCounter]
-                                          .replaceAll(
-                                              new RegExp(r'[^\w\s]+'), '')
-                                          .toString()
-                                          .toLowerCase();
-                                      print("Message to compare : $message");
-                                      print(
-                                          "text to compare : ${text.toLowerCase().toString()}");
-                                      if (text.toLowerCase().toString() ==
-                                          message) {
-                                        incrementScrCounter(context);
-                                        finalEnglishConversationList
-                                            .add(english![messageCounter]);
-                                        finalHindiConversationList
-                                            .add(hindi![messageCounter]);
-                                        finalEnglishConversationList
-                                            .add(english![scoreCounter + 1]);
-                                        flutterTts.speak(
-                                            english![messageCounter + 1]);
-                                        finalHindiConversationList
-                                            .add(hindi![scoreCounter + 1]);
-                                      }
-
-                                      Fluttertoast.showToast(
-                                          msg:
-                                              "Conversation ended. Your final score is $scoreCounter");
-                                      Future.delayed(Duration(seconds: 2), () {
-                                        Navigator.pop(context);
-                                        resetCounters(context);
-                                      });
-                                    } else {
-                                      String message = english![messageCounter]
-                                          .replaceAll(
-                                              new RegExp(r'[^\w\s]+'), '')
-                                          .toString()
-                                          .toLowerCase();
                                       print("Message to compare : $message");
                                       print(
                                           "text to compare : ${text.toLowerCase().toString()}");
 
-                                      if (text.toLowerCase().toString() ==
-                                          message) {
-                                        incrementMsgCounter(context);
-                                        incrementScrCounter(context);
-                                        finalEnglishConversationList
-                                            .add(english![messageCounter]);
-                                        finalHindiConversationList
-                                            .add(hindi![messageCounter]);
-                                        finalEnglishConversationList
-                                            .add(english![messageCounter + 1]);
-                                        flutterTts.speak(
-                                            english![messageCounter + 1]);
-                                        finalHindiConversationList
-                                            .add(hindi![messageCounter + 1]);
+                                      if (percent > 70) {
+                                        endSuccessDialog(
+                                            context, percent, scoreCounter);
+                                        // showDialog(
+                                        //   context: context,
+                                        //   builder: (BuildContext context) =>
+                                        //       new CupertinoAlertDialog(
+                                        //     title:
+                                        //         new Text("$percent%  सही जवाब"),
+                                        //     content: Column(
+                                        //       children: [
+                                        //         Text("\" $text \"",
+                                        //             style: TextStyle(
+                                        //               fontSize: 18,
+                                        //             )),
+                                        //         Text(
+                                        //             "Well try, Conversation ended",
+                                        //             style: TextStyle(
+                                        //               fontSize: 18,
+                                        //             )),
+                                        //         Text(
+                                        //             "Your final score is : ${scoreCounter + 1}",
+                                        //             style: TextStyle(
+                                        //               fontSize: 18,
+                                        //             )),
+                                        //       ],
+                                        //     ),
+                                        //     actions: [
+                                        //       CupertinoDialogAction(
+                                        //         isDefaultAction: true,
+                                        //         child: new Text("Ok"),
+                                        //         onPressed: () {
+                                        //           // incrementMsgCounter(context);
+                                        //           // incrementScrCounter(context);
+                                        //           resetCounters(context);
+
+                                        //           Navigator.pushReplacement(
+                                        //               context,
+                                        //               MaterialPageRoute(
+                                        //                   builder: (c) =>
+                                        //                       ConversationType()));
+                                        //         },
+                                        //       ),
+                                        //     ],
+                                        //   ),
+                                        // );
                                       } else {
-                                        Fluttertoast.showToast(
-                                            msg: "Please Try again");
+                                        endErrorDialog(
+                                            context, percent, scoreCounter);
+                                        // showDialog(
+                                        //     context: context,
+                                        //     builder: (c) =>
+                                        //         CupertinoAlertDialog(
+                                        //           title: Text("Ohh no"),
+                                        //           content: Text('$text'),
+                                        //           actions: [
+                                        //             CupertinoDialogAction(
+                                        //               child: Text("Try again"),
+                                        //               onPressed: () {
+                                        //                 Navigator.pop(context);
+                                        //               },
+                                        //             ),
+                                        //             CupertinoDialogAction(
+                                        //               child: Text("Skip"),
+                                        //               onPressed: () {
+                                        //                 showDialog(
+                                        //                   context: context,
+                                        //                   builder: (BuildContext
+                                        //                           context) =>
+                                        //                       new CupertinoAlertDialog(
+                                        //                     title: new Text(
+                                        //                         "$percent%  सही जवाब"),
+                                        //                     content: Column(
+                                        //                       children: [
+                                        //                         Text(
+                                        //                             "\" $text \"",
+                                        //                             style:
+                                        //                                 TextStyle(
+                                        //                               fontSize:
+                                        //                                   18,
+                                        //                             )),
+                                        //                         Text(
+                                        //                             "Well try, Conversation ended",
+                                        //                             style:
+                                        //                                 TextStyle(
+                                        //                               fontSize:
+                                        //                                   18,
+                                        //                             )),
+                                        //                         Text(
+                                        //                             "Your final score is : $scoreCounter",
+                                        //                             style:
+                                        //                                 TextStyle(
+                                        //                               fontSize:
+                                        //                                   18,
+                                        //                             )),
+                                        //                       ],
+                                        //                     ),
+                                        //                     actions: [
+                                        //                       CupertinoDialogAction(
+                                        //                         child:
+                                        //                             Text("Ok"),
+                                        //                         onPressed: () {
+                                        //                           resetCounters(
+                                        //                               context);
+
+                                        //                           Navigator.pushReplacement(
+                                        //                               context,
+                                        //                               MaterialPageRoute(
+                                        //                                   builder: (c) =>
+                                        //                                       ConversationType()));
+                                        //                         },
+                                        //                       ),
+                                        //                     ],
+                                        //                   ),
+                                        //                 );
+                                        //               },
+                                        //             ),
+                                        //           ],
+                                        //         ));
+                                      }
+                                    } else {
+                                      // String message = english![messageCounter]
+                                      //     .replaceAll(
+                                      //         new RegExp(r'[^\w\s]+'), '')
+                                      //     .toString()
+                                      //     .toLowerCase();
+                                      print("Message to compare : $message");
+                                      print(
+                                          "text to compare : ${text.toLowerCase().toString()}");
+                                      if (percent > 70) {
+                                        successDialog(
+                                            context, percent, messageCounter);
+
+                                        // showDialog(
+                                        //   context: context,
+                                        //   builder: (BuildContext context) =>
+                                        //       new CupertinoAlertDialog(
+                                        //     title:
+                                        //         new Text("$percent%  सही जवाब"),
+                                        //     content: new Text("\" $text \"",
+                                        //         style: TextStyle(
+                                        //           fontSize: 22,
+                                        //         )),
+                                        //     actions: [
+                                        //       CupertinoDialogAction(
+                                        //         isDefaultAction: true,
+                                        //         child: new Text("Next"),
+                                        //         onPressed: () {
+                                        //           incrementMsgCounter(context);
+                                        //           incrementScrCounter(context);
+                                        //           finalEnglishConversationList
+                                        //               .add(english![
+                                        //                   messageCounter]);
+                                        //           finalHindiConversationList
+                                        //               .add(hindi![
+                                        //                   messageCounter]);
+                                        //           finalEnglishConversationList
+                                        //               .add(english![
+                                        //                   messageCounter + 1]);
+                                        //           flutterTts.speak(english![
+                                        //               messageCounter + 1]);
+                                        //           finalHindiConversationList
+                                        //               .add(hindi![
+                                        //                   messageCounter + 1]);
+                                        //           Navigator.pop(context);
+                                        //         },
+                                        //       ),
+                                        //     ],
+                                        //   ),
+                                        // );
+                                      } else {
+                                        errorDialog(
+                                            context, percent, messageCounter);
+                                        // showDialog(
+                                        //   context: context,
+                                        //   builder: (BuildContext context) =>
+                                        //       new CupertinoAlertDialog(
+                                        //     title:
+                                        //         new Text("$percent% सही जवाब"),
+                                        //     content: new Text(
+                                        //       "$text",
+                                        //       style: TextStyle(
+                                        //         fontSize: 18,
+                                        //       ),
+                                        //     ),
+                                        //     actions: [
+                                        //       CupertinoDialogAction(
+                                        //         isDefaultAction: true,
+                                        //         child: new Text("Try again"),
+                                        //         onPressed: () {
+                                        //           Navigator.pop(context);
+                                        //         },
+                                        //       ),
+                                        //       CupertinoDialogAction(
+                                        //         isDefaultAction: true,
+                                        //         child: new Text("Skip"),
+                                        //         onPressed: () {
+                                        //           incrementMsgCounter(context);
+                                        //           finalEnglishConversationList
+                                        //               .add(english![
+                                        //                   messageCounter]);
+                                        //           finalHindiConversationList
+                                        //               .add(hindi![
+                                        //                   messageCounter]);
+                                        //           finalEnglishConversationList
+                                        //               .add(english![
+                                        //                   messageCounter + 1]);
+                                        //           flutterTts.speak(english![
+                                        //               messageCounter + 1]);
+                                        //           finalHindiConversationList
+                                        //               .add(hindi![
+                                        //                   messageCounter + 1]);
+                                        //           Navigator.pop(context);
+                                        //         },
+                                        //       ),
+                                        //     ],
+                                        //   ),
+                                        // );
                                       }
                                     }
-
-                                    // incrementMsgCounter(context);
-                                    // incrementScrCounter(context);
-                                    // Provider.of<IncrementMessageCounter>(context,
-                                    //         listen: false)
-                                    //     .incrementCounter();
-                                    // setState(() {
-                                    //   // items.add(text);
-                                    //   isListening = false;
-                                    // });
                                     _scrollController.animateTo(
                                         _scrollController
                                             .position.maxScrollExtent,
                                         curve: Curves.easeOut,
                                         duration: Duration(milliseconds: 300));
-                                    // toggleisMe();
-                                    print(text);
-                                    // if (text == "done for now") {
-                                    //   print('very good');
-                                    // } else {
-                                    // }
-                                    print("onlong press up and $isListening");
                                   },
                                   child: Material(
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(30)),
-                                    child: CircleAvatar(
-                                      backgroundColor: Colors.amber,
-                                      radius: 30,
-                                      child: Icon(
-                                        Icons.mic,
-                                        // _isListening ? Icons.mic : Icons.mic_none,
-                                        color: Colors.white,
+                                            BorderRadius.circular(35)),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Color(0xff3296F2),
+                                                Color(0xff1A69DE),
+                                              ])),
+                                      child: CircleAvatar(
+                                        backgroundColor: Colors.transparent,
+                                        radius: 30,
+                                        child: Icon(
+                                          // Icons.mic,
+                                          isListening
+                                              ? Icons.mic_none
+                                              : Icons.mic,
+
+                                          size: 32,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
                               Text(
-                                'Hold to record, release to send.',
+                                'Hold to record & release to send.',
                                 style: TextStyle(
-                                    color: Colors.white, fontSize: 18),
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  // fontStyle: FontStyle.italic,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      )
-                    ],
-                  ),
+                        )
+                      ],
+                    ),
+            ),
           ),
         ),
       ),
     );
+  }
+
+  AwesomeDialog errorDialog(
+      BuildContext context, int percent, int messageCounter) {
+    return AwesomeDialog(
+      dismissOnBackKeyPress: false,
+      context: context,
+      animType: AnimType.BOTTOMSLIDE,
+      dialogType: DialogType.ERROR,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "$percent%",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red),
+              ),
+              Text("  सही जवाब",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.grey.shade800,
+                    fontWeight: FontWeight.w600,
+                  )),
+              SizedBox(width: 8),
+              IconButton(
+                  onPressed: () {
+                    flutterTts.speak(text);
+                  },
+                  icon: Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.black87,
+                  ))
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              "\" $text \"",
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
+      ),
+      btnOk: MaterialButton(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: Color(0xFF00CA71),
+          child: Text(
+            'Try again',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          }),
+      btnCancel: MaterialButton(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: Colors.red,
+          child: Text(
+            'Skip',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          onPressed: () {
+            incrementMsgCounter(context);
+            finalEnglishConversationList.add(english![messageCounter]);
+            finalHindiConversationList.add(hindi![messageCounter]);
+            finalEnglishConversationList.add(english![messageCounter + 1]);
+            flutterTts.speak(english![messageCounter + 1]);
+            finalHindiConversationList.add(hindi![messageCounter + 1]);
+            Navigator.pop(context);
+          }),
+    )..show();
+  }
+
+  AwesomeDialog successDialog(
+      BuildContext context, int percent, int messageCounter) {
+    return AwesomeDialog(
+      context: context,
+      dismissOnBackKeyPress: false,
+      animType: AnimType.BOTTOMSLIDE,
+      dialogType: DialogType.SUCCES,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "$percent%",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00CA71)),
+              ),
+              Text("  सही जवाब",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.grey.shade800,
+                    fontWeight: FontWeight.w600,
+                  )),
+              SizedBox(width: 8),
+              IconButton(
+                  onPressed: () {
+                    flutterTts.speak(text);
+                  },
+                  icon: Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.black87,
+                  ))
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              "\" $text \"",
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
+      ),
+      btnOk: MaterialButton(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        onPressed: () {
+          incrementMsgCounter(context);
+          incrementScrCounter(context);
+          finalEnglishConversationList.add(english![messageCounter]);
+          finalHindiConversationList.add(hindi![messageCounter]);
+          finalEnglishConversationList.add(english![messageCounter + 1]);
+          flutterTts.speak(english![messageCounter + 1]);
+          finalHindiConversationList.add(hindi![messageCounter + 1]);
+          Navigator.pop(context);
+          Fluttertoast.showToast(
+              msg: "Point scored.", gravity: ToastGravity.CENTER);
+        },
+        color: Color(0xFF00CA71),
+        child: Text(
+          'Next',
+          style: TextStyle(fontSize: 18, color: Colors.white),
+        ),
+      ),
+    )..show();
+  }
+
+  AwesomeDialog endErrorDialog(
+      BuildContext context, int percent, int scoreCounter) {
+    return AwesomeDialog(
+      context: context,
+      dismissOnBackKeyPress: false,
+      dialogType: DialogType.ERROR,
+      animType: AnimType.BOTTOMSLIDE,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "$percent%",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red),
+              ),
+              Text("  सही जवाब",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.grey.shade800,
+                    fontWeight: FontWeight.w600,
+                  )),
+              SizedBox(width: 8),
+              IconButton(
+                  onPressed: () {
+                    flutterTts.speak(text);
+                  },
+                  icon: Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.black87,
+                  ))
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              "\" $text \"",
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
+      ),
+      btnOk: MaterialButton(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: Color(0xFF00CA71),
+          child: Text(
+            'Try again',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          }),
+      btnCancel: MaterialButton(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: Colors.red,
+        child: Text(
+          'End Conv.',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        onPressed: () {
+          AwesomeDialog(
+            context: context,
+            dialogType: DialogType.INFO,
+            animType: AnimType.BOTTOMSLIDE,
+            body: Column(
+              children: [
+                Text('Well try, Conversation has ended.'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Your final score is : '),
+                    Text(
+                      "$scoreCounter",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
+            btnOk: MaterialButton(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              color: Color(0xFF00CA71),
+              onPressed: () {
+                resetCounters(context);
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (c) => ConversationType()));
+              },
+              child: Text(
+                'Ok',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          )..show();
+        },
+      ),
+    )..show();
+  }
+
+  AwesomeDialog endSuccessDialog(
+      BuildContext context, int percent, int scoreCounter) {
+    return AwesomeDialog(
+      context: context,
+      dismissOnBackKeyPress: false,
+      dialogType: DialogType.SUCCES,
+      animType: AnimType.BOTTOMSLIDE,
+      btnOk: MaterialButton(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: Color(0xFF00CA71),
+        onPressed: () {
+          resetCounters(context);
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (c) => ConversationType()));
+        },
+        child: Text(
+          'Ok',
+          style: TextStyle(fontSize: 18, color: Colors.white),
+        ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "$percent%",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00CA71)),
+              ),
+              Text("  सही जवाब",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.grey.shade800,
+                    fontWeight: FontWeight.w600,
+                  )),
+              SizedBox(width: 8),
+              IconButton(
+                  onPressed: () {
+                    flutterTts.speak(text);
+                  },
+                  icon: Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.black87,
+                  ))
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              "\" $text \"",
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text("Well try, Conversation ended",
+              style: TextStyle(
+                fontSize: 14,
+              )),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Your final score is : ",
+                  style: TextStyle(
+                    fontSize: 16,
+                  )),
+              Text(
+                '${scoreCounter + 1}',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              )
+            ],
+          ),
+        ],
+      ),
+    )..show();
   }
 }

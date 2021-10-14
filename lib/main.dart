@@ -1,9 +1,10 @@
-import 'package:conversation_game/Game/ConvType.dart';
 import 'package:conversation_game/provider%20model/model.dart';
+import 'package:conversation_game/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: "Conversation Game",
-        theme: ThemeData(primaryColor: Color(0xffFE834A)),
-        home: ConversationType(),
+        theme: ThemeData(
+            textTheme: GoogleFonts.montserratTextTheme(
+          Theme.of(context).textTheme,
+        )),
+        home: SplashScreen(),
       );
 }
